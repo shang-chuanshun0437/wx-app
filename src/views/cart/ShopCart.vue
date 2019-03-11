@@ -12,12 +12,14 @@
             <img class="img" src="../../assets/icon/shopAny.png" v-show="totalPrice > 0"></img>
           </div>
         </div>
-        <div class="price" :class="{'active':totalPrice}">
-          ￥{{totalPrice}}
-        </div>
+      </div>
+      <div class="content-vip-right" :class="{'vip-enough':totalVipPrice > 0}" @click="vipPayBill">
+        <div style="position: relative;top: -10px;">￥{{totalVipPrice}}</div>
+        <div style="position: relative;top: -40px;">会员结算</div>
       </div>
       <div class="content-right" :class="{'enough':totalPrice > 0}" @click="payBill">
-        去结算
+        <div style="position: relative;top: -10px;">￥{{totalPrice}}</div>
+        <div style="position: relative;top: -40px;">非会员结算</div>
       </div>
     </div>
     <div class="ball-container">
@@ -38,9 +40,9 @@
         <div class="list-content" ref="foodlist">
           <ul>
             <li class="food" v-for="food in selectFoods">
-              <span class="name">{{food.name}}</span>
+              <span class="name">{{food.foodName}}</span>
               <div class="price">
-                <span>￥{{food.price * food.count}}</span>
+                <span>￥{{food.newPrice * food.foodCount}}</span>
               </div>
               <div class="cartcontrol-wrapper">
                 <CartControl :food="food"></CartControl>
@@ -54,12 +56,17 @@
   <transition name="fade-backdrop">
     <div class="backdrop" v-show="showBackdrop" @click="hideBackdrop"></div>
   </transition>
+    <van-dialog v-model="viPayBillShow" show-cancel-button :before-close="beforeClose" >
+      <van-field v-model="vipNum" label="会员编号" placeholder="请输入会员编号" />
+    </van-dialog>
   </div>
 </template>
 
 <script>
 import CartControl from './CartControl'
 import BScroll from 'better-scroll'
+import * as API from "../../axios/api";
+import * as URL from "../../axios/url";
 
 export default {
   props: {
@@ -67,33 +74,22 @@ export default {
       type: Array,
       default: []
     },
-    deliveryPrice: {
-      type: Number,
-      default: 0
+    wxAppId: {
+      type: String,
+      default: ''
     },
-    minPrice: {
-      type: Number,
-      default: 0
-    }
   },
   components: {
     CartControl
   },
   data() {
     return {
-      balls: [{
-        show: false
-      }, {
-        show: false
-      }, {
-        show: false
-      }, {
-        show: false
-      }, {
-        show: false
-      }],
+      balls: [{ show: false }, { show: false }, { show: false },
+        { show: false }, { show: false }],
       dropBalls: [],
-      listShow: false
+      listShow: false,
+      viPayBillShow: false,
+      vipNum: '',
     }
   },
   created() {
@@ -101,6 +97,7 @@ export default {
     this.$root.eventHub.$on('cart.add', this.drop)
   },
   computed: {
+
     showBackdrop() {
       if (this.listShow && this.totalPrice) {
         return true
@@ -111,8 +108,17 @@ export default {
     totalPrice() {
       let total = 0
       this.selectFoods.forEach((food) => {
-        if (food.count) {
-          total += food.price * food.count
+        if (food.foodCount) {
+          total += food.newPrice * food.foodCount
+        }
+      })
+      return total
+    },
+    totalVipPrice() {
+      let total = 0
+      this.selectFoods.forEach((food) => {
+        if (food.foodCount) {
+          total += food.vipPrice * food.foodCount
         }
       })
       return total
@@ -120,7 +126,7 @@ export default {
     totalCount() {
       let count = 0
       this.selectFoods.forEach((food) => {
-        count += food.count
+        count += food.foodCount
       })
       return count
     },
@@ -139,13 +145,13 @@ export default {
     },
     setEmpty() {
       this.selectFoods.forEach((food) => {
-        food.count = 0
+        food.foodCount = 0
       })
     },
     hideBackdrop() {
       this.listShow = false
     },
-    _initScroll() {
+    initScroll() {
       this.foodlistScroll = new BScroll(this.$refs.foodlist, {
         click: true
       });
@@ -158,7 +164,7 @@ export default {
       if (this.listShow) {
         this.$nextTick(() => {
           if (!this.foodlistScroll) {
-            this._initScroll()
+            this.initScroll()
           } else {
             this.foodlistScroll.refresh()
           }
@@ -200,10 +206,40 @@ export default {
       }
     },
     payBill(){
-      if (this.totalPrice <= 0){
-        console.log('请点餐')
-      }else {
-        console.log('马上去结算')
+      var userPhone = this.$route.params.userPhone;
+      var storeId = this.$route.params.storeId;
+      var tableId = this.$route.params.tableId;
+
+      this.$router.push({path:"/wx/order/pay",query:{selectFoods: this.selectFoods,wxAppId: this.wxAppId,
+          vipNum: '',onlinePay: false,userPhone: userPhone,storeId: storeId,tableId: tableId}});
+    },
+    vipPayBill(){
+      this.viPayBillShow = true;
+    },
+    beforeClose(action, done) {
+      if (action === 'confirm') {
+        //查询会员编号是否存在
+        var userPhone = this.$route.params.userPhone;
+        var param = Object.assign({}, {userPhone: userPhone ,vipId: this.vipNum });
+
+        //查询会员
+        API.POST(URL.QUERY_VIP_URL, param)
+          .then(res => {
+            if (res.result.retCode === 0) {
+              //打开支付界面
+              this.$router.push({path:"/wx/order/pay",query:{selectFoods: this.selectFoods,wxAppId: this.wxAppId,
+                  vipNum: this.vipNum}});
+
+            }else if(res.result.retCode === 1024){
+              alert('会员账号输入错误，请重新输入')
+            }
+          })
+          .catch(err => {
+            alert('后台正在升级，请联系管理员！');
+          });
+        done();
+      } else {
+        done();
       }
     }
   },
@@ -273,7 +309,7 @@ export default {
       .price
         display inline-block
         vertical-align top
-        font-size 16px
+        font-size 12px
         margin-top 12px
         padding-right 12px
         box-sizing border-box
@@ -283,15 +319,17 @@ export default {
         border-right 1px solid rgba(255,255,255,0.1)
         &.active
           color white
-      .desc
-        position relative
-        display inline-block
-        vertical-align top
-        margin 12px 0 0 12px
-        font-size 10px
-        color rgba(255,255,255,0.4)
-        font-weight 700
-        line-height 24px
+    .content-vip-right
+      flex 0 0 105px
+      font-size 12px
+      font-weight 700
+      background #2b343c
+      color rgba(255,255,255,0.4)
+      line-height 48px
+      text-align center
+      &.vip-enough
+        background #1296db
+        color white
     .content-right
       flex 0 0 105px
       font-size 12px

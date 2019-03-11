@@ -2,12 +2,12 @@
 
   <div class="cartcontrol">
     <transition name="fadeRotate">
-      <div class="cart-decrease" v-show="food.count>0" @click.stop.prevent="decreaseCart()">
+      <div class="cart-decrease" v-show="food.foodCount > 0" @click.stop.prevent="decreaseCart()">
           <img class="img inner" src="../../assets/icon/reduce.png"></img>
       </div>
     </transition>
-    <div class="cart-count" v-show="food.count>0">
-      {{food.count}}
+    <div class="cart-count" v-show="food.foodCount > 0">
+      {{food.foodCount}}
     </div>
     <div class="cart-add" @click.stop.prevent="addCart($event)">
       <img class="img" src="../../assets/icon/add.png"></img>
@@ -29,17 +29,17 @@ export default {
       if (!event._constructed) {
         return
       }
-      if (!this.food.count) {
-        Vue.set(this.food, 'count', 0)
+      if (!this.food.foodCount) {
+        Vue.set(this.food, 'foodCount', 0)
       }
-      this.food.count++;
+      this.food.foodCount++;
       this.$root.eventHub.$emit('cart.add', event.target)
     },
     decreaseCart() {
-      if (!event._constructed || !this.food.count) {
+      if (!event._constructed || !this.food.foodCount) {
         return
       }
-      this.food.count--;
+      this.food.foodCount--;
     }
   }
 }

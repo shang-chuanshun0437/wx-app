@@ -5,3 +5,5 @@
 
 //会员
 export const VIP_LIST = "VIP_LIST";
+
+export const STORE_NAME = "STORE_NAME";

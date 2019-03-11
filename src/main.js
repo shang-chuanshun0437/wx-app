@@ -2,7 +2,10 @@ import Vue from 'vue'
 import App from './App'
 import router from './router/fullPath'
 import store from './store/index'
+import Vant from 'vant';
+import 'vant/lib/index.css';
 
+Vue.use(Vant);
 //引入axios
 import Axios from 'axios'
 //给vue挂载一个属性

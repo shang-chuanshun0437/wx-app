@@ -5,7 +5,7 @@
       <ul class="ul">
         <li v-for="(item,index) in goods" @click="menuClick(index,$event)" :class="index==menuCurrentIndex?'menu-item-selected':'menu-item'">
           <span class="text">
-            {{item.name}}
+            {{item.categoryName}}
           </span>
         </li>
       </ul>
@@ -13,22 +13,25 @@
     <div class="foods-wrapper" id="wrapper" ref="foodsWrapper">
       <ul class="ul">
         <li v-for="item in goods" class="food-list food-list-hook">
-          <h1>{{item.name}}</h1>
+          <h1>{{item.categoryName}}</h1>
           <ul class="ul">
-            <li v-for="food in item.foods" class="food-item" @click="goDetail(food)">
+            <li v-for="food in item.foods" class="food-item">
               <div class="icon">
-                <img width="57" height="57" :src="food.icon"/>
+                <img width="57" height="57" :src="food.foodImg"/>
               </div>
               <div class="content">
-                <h2>{{food.name}}</h2>
-                <p class="description" v-show="food.description">{{food.description}}</p>
-                <div class="sell-info">
-                  <span class="sellCount">月售{{food.sellCount}}份</span>
-                  <span class="rating">好评率{{food.rating}}%</span>
-                </div>
+                <h2>{{food.foodName}}</h2>
+
                 <div class="price">
-                  <span class="newPrice"><span class="unit">￥</span>{{food.price}}</span>
-                  <span v-show="food.oldPrice" class="oldPrice">￥{{food.oldPrice}}</span>
+                  <span class="newPrice"><span class="unit">￥</span>{{food.newPrice}}</span>
+                  <span v-show="food.oldPrice != food.newPrice" class="oldPrice">￥{{food.oldPrice}}</span>
+                </div>
+                <div class="sell-info">
+                  <span class="sellCount" v-show="food.vipPrice != food.newPrice">会员价：￥{{food.vipPrice}}</span>
+                  <span class="rating" v-show="food.taste == 1">口味：不辣</span>
+                  <span class="rating" v-show="food.taste == 2">口味：微辣</span>
+                  <span class="rating" v-show="food.taste == 3">口味：中辣</span>
+                  <span class="rating" v-show="food.taste == 4">口味：特辣</span>
                 </div>
                 <div class="cartcontrol-wrapper">
                   <CartControl :food="food"></CartControl>
@@ -39,7 +42,7 @@
         </li>
       </ul>
     </div>
-    <ShopCart  :selectFoods="selectFoods"></ShopCart>
+    <ShopCart  :selectFoods="selectFoods" :wxAppId="wxAppId"></ShopCart>
   </div>
 
 </template>
@@ -48,7 +51,8 @@
 import BScroll from 'better-scroll'
 import ShopCart from '../cart/ShopCart'
 import CartControl from '../cart/CartControl'
-import axios from 'axios'
+import * as API from "../../axios/api";
+import * as URL from "../../axios/url";
 
 export default {
   props: {
@@ -58,23 +62,22 @@ export default {
     ShopCart,
     CartControl,
   },
-  created() {
-    axios.get('static/data.json').then((res) => {
-      this.goods = res.data.goods
-      this.$nextTick(() => {
-        this._initScroll(); // 初始化scroll
-        this._calculateHeight(); // 初始化列表高度列表
-      })
-    });
-  },
   data() {
     return {
       goods: [],
       listHeight: [],
       foodsScrollY: 0,
-      selectedFood: ''
+      selectedFood: '',
+      userPhone: '',
+      storeId: '',
+      tableId: '',
+      wxAppId: ''
     }
   },
+  created() {
+    this.refresh();
+  },
+
   computed: {
     menuCurrentIndex() {
       for (let i = 0, l = this.listHeight.length; i < l; i++) {
@@ -90,7 +93,7 @@ export default {
       let foods = []
       this.goods.forEach((good) => {
         good.foods.forEach((food) => {
-          if (food.count) {
+          if (food.foodCount) {
             foods.push(food)
           }
         })
@@ -99,7 +102,32 @@ export default {
     }
   },
   methods: {
-    _initScroll() {
+    refresh(){
+      this.userPhone = this.$route.params.userPhone;
+      this.storeId = this.$route.params.storeId;
+      this.tableId = this.$route.params.tableId;
+      var param = Object.assign({}, {userPhone: this.userPhone ,storeId: this.storeId , tableId: this.tableId });
+
+      //查询店铺商品
+      API.POST(URL.QUERY_MENU_URL, param)
+        .then(res => {
+          if (res.result.retCode === 0) {
+            this.goods = res.goods
+            this.wxAppId = res.wxAppId
+            this.$store.dispatch("userStore/list",res);
+            this.$nextTick(() => {
+              this.initScroll(); // 初始化scroll
+              this.calculateHeight(); // 初始化列表高度列表
+            })
+          }else {
+            alert('餐桌编号不存在')
+          }
+        })
+        .catch(err => {
+          alert('后台正在升级，请联系管理员！');
+        });
+    },
+    initScroll() {
       this.menuWrapper = new BScroll(this.$refs.menuWrapper, {
         click: true
       });
@@ -112,7 +140,7 @@ export default {
         this.foodsScrollY = Math.abs(Math.round(pos.y))
       })
     },
-    _calculateHeight() {
+    calculateHeight() {
       let foodList = this.$refs.foodsWrapper.querySelectorAll('.food-list-hook')
       console.log(foodList)
       let height = 0
@@ -129,18 +157,13 @@ export default {
       }
       this.foodsScroll.scrollTo(0, -this.listHeight[index], 300)
     },
-    goDetail(food) {
-      this.selectedFood = food
-      this.$nextTick(() => {
-        this.$refs.myFood.showToggle()
-      })
-    }
+
   },
 }
 
 </script>
 
-<style lang="stylus">
+<style lang="stylus" type="text/stylus">
 @import '../../common/stylus/mixin.styl'
   .goods
     display flex
