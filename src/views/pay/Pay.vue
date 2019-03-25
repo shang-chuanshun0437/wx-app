@@ -63,6 +63,14 @@
         userPhone: '',
         storeId: '',
         tableId: '',
+        totalAmount:"",
+        wxParameter:{
+          "appId":"",
+          "timeStamp":"",
+          "nonceStr":"",
+          "package":"",
+          "paySign":""
+        }
       }
     },
     components: {
@@ -123,6 +131,8 @@
         this.userPhone = this.$route.query.userPhone;
         this.storeId = this.$route.query.storeId;
         this.tableId = this.$route.query.tableId;
+        this.totalAmount = this.$route.query.totalAmount;
+
         if (this.onlinePay == true){
           this.foregroundDisabled = true;
           this.wxpayDisabled = false;
@@ -144,15 +154,24 @@
       commit(){
         this.commitDisabled = true;
         var param = Object.assign({}, {userPhone: this.userPhone ,storeId: this.storeId , tableId: this.tableId,
-          storeName: this.storeName,source: 1,orderInfos: this.selectFoods,personNum: 4});
-        console.log(this.storeName)
+          storeName: this.storeName,source: 1,orderInfos: this.selectFoods,personNum: 4,
+          orderStatus: 2,totalAmount: this.totalAmount});
         if (this.vipNum != ''){
           param.vipNum = this.vipNum;
         }
         //前台收银
         if (this.onlinePay == false & this.radio == '1'){
           param.payType = 1;
+          param.orderTemp = 2;
           this.commited(param);
+        }else if(this.onlinePay == true & this.radio == '2'){
+          //微信支付
+          param.payType = 4;
+          param.orderTemp = 1;
+          this.wxPayCommited(param);
+        }else {
+          //支付宝支付
+
         }
       },
       commited(param){
@@ -170,6 +189,58 @@
             this.commitDisabled = false;
           });
       },
+      wxPayCommited(param){
+        //提交订单
+        API.POST(URL.ORDER_ADD_URL, param)
+          .then(res => {
+            if (res.result.retCode === 0) {
+              if (res.wxPayParameter == null){
+                alert('抱歉，订单提交失败,微信支付参数有误');
+              }else {
+                if (typeof WeixinJSBridge == "undefined"){
+                  if( document.addEventListener ){
+                    document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
+                  }else if (document.attachEvent){
+                    document.attachEvent('WeixinJSBridgeReady', onBridgeReady);
+                    document.attachEvent('onWeixinJSBridgeReady', onBridgeReady);
+                  }
+                }else{
+                  this.appId = res.wxPayParameter.appId;
+                  this.timeStamp = res.wxPayParameter.timeStamp;
+                  this.nonceStr = res.wxPayParameter.nonceStr;
+                  this.package = res.wxPayParameter.prepayId;
+                  this.paySign = res.wxPayParameter.paySign;
+                  this.onBridgeReady();
+                }
+              }
+
+            }else {
+              alert('抱歉，订单提交失败,请联系服务员');
+            }
+          })
+          .catch(err => {
+            alert('后台正在升级，请联系管理员！');
+            this.commitDisabled = false;
+          });
+      },
+      onBridgeReady(){
+        WeixinJSBridge.invoke(
+        'getBrandWCPayRequest', {
+          "appId":this.appId,     //公众号名称，由商户传入
+          "timeStamp":this.timeStamp,         //时间戳，自1970年以来的秒数
+          "nonceStr":this.nonceStr, //随机串
+          "package":this.package,
+          "signType":"MD5",         //微信签名方式：
+          "paySign":this.paySign //微信签名
+        },
+        function(res){
+          if(res.err_msg == "get_brand_wcpay_request:ok" ){
+            // 使用以上方式判断前端返回,微信团队郑重提示：
+            //res.err_msg将在用户支付成功后返回ok，但并不保证它绝对可靠。
+            alert('客官订单已提交成功，大厨正在备餐');
+          }
+        });
+       }
     }
   }
 </script>

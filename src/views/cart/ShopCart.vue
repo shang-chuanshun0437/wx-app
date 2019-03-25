@@ -78,6 +78,10 @@ export default {
       type: String,
       default: ''
     },
+    payType: {
+      type: String,
+      default: ''
+    },
   },
   components: {
     CartControl
@@ -93,7 +97,6 @@ export default {
     }
   },
   created() {
-    console.log(this.$root.eventHub);
     this.$root.eventHub.$on('cart.add', this.drop)
   },
   computed: {
@@ -209,9 +212,13 @@ export default {
       var userPhone = this.$route.params.userPhone;
       var storeId = this.$route.params.storeId;
       var tableId = this.$route.params.tableId;
-
+      var onlinePay = false;
+      if (this.payType == 2){
+        onlinePay = true;
+      };
       this.$router.push({path:"/wx/order/pay",query:{selectFoods: this.selectFoods,wxAppId: this.wxAppId,
-          vipNum: '',onlinePay: false,userPhone: userPhone,storeId: storeId,tableId: tableId}});
+          vipNum: '',onlinePay: onlinePay,userPhone: userPhone,storeId: storeId,
+          tableId: tableId,totalAmount: this.totalPrice}});
     },
     vipPayBill(){
       this.viPayBillShow = true;

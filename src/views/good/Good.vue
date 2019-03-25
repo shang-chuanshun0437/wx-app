@@ -42,7 +42,7 @@
         </li>
       </ul>
     </div>
-    <ShopCart  :selectFoods="selectFoods" :wxAppId="wxAppId"></ShopCart>
+    <ShopCart  :selectFoods="selectFoods" :wxAppId="wxAppId" :payType="payType"></ShopCart>
   </div>
 
 </template>
@@ -71,7 +71,8 @@ export default {
       userPhone: '',
       storeId: '',
       tableId: '',
-      wxAppId: ''
+      wxAppId: '',
+      payType:"",
     }
   },
   created() {
@@ -112,8 +113,9 @@ export default {
       API.POST(URL.QUERY_MENU_URL, param)
         .then(res => {
           if (res.result.retCode === 0) {
-            this.goods = res.goods
-            this.wxAppId = res.wxAppId
+            this.goods = res.goods;
+            this.wxAppId = res.wxAppId;
+            this.payType = res.payType;
             this.$store.dispatch("userStore/list",res);
             this.$nextTick(() => {
               this.initScroll(); // 初始化scroll
