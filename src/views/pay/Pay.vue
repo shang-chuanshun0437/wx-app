@@ -23,10 +23,6 @@
             <img class="wxpay-img" slot="icon" slot-scope="props" src="../../assets/icon/wxpay.png" >
             <van-radio :disabled="wxpayDisabled" name="2"></van-radio>
           </van-cell>
-          <van-cell title="支付宝支付" clickable @click="radio = '3'">
-            <img class="alipay-img" slot="icon" slot-scope="props" src="../../assets/icon/alipay.png" >
-            <van-radio :disabled="alipayDisabled" name="3" />
-          </van-cell>
         </van-cell-group>
       </van-radio-group>
       <div class="pay-price">

@@ -7,7 +7,7 @@
         <img src="../../assets/icon/brand.png" style="width: 20px;height: 20px">
         <span class="store-name">{{storeName}}</span>
         <span class="welcome">欢迎您的光临</span>
-        <span class="pay-type">在线支付/微信、支付宝</span>
+        <span class="pay-type">在线支付/前台支付</span>
       </div>
     </div>
 </template>

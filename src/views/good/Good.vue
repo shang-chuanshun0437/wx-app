@@ -72,7 +72,7 @@ export default {
       storeId: '',
       tableId: '',
       wxAppId: '',
-      payType:"",
+      payType:1,
     }
   },
   created() {
@@ -114,7 +114,6 @@ export default {
         .then(res => {
           if (res.result.retCode === 0) {
             this.goods = res.goods;
-            this.wxAppId = res.wxAppId;
             this.payType = res.payType;
             this.$store.dispatch("userStore/list",res);
             this.$nextTick(() => {

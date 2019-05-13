@@ -79,7 +79,7 @@ export default {
       default: ''
     },
     payType: {
-      type: String,
+      type: Number,
       default: ''
     },
   },
